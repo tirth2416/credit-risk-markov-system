@@ -1,58 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Credit Risk Predictor</title>
+    <title>Credit Risk Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body {
             font-family: Arial;
             background: #0f172a;
             color: white;
-            text-align: center;
-            padding: 50px;
+            padding: 20px;
         }
 
-        .box {
+        h1 { text-align: center; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
             background: #1e293b;
-            padding: 30px;
+            padding: 15px;
             border-radius: 10px;
-            display: inline-block;
-            width: 400px;
+        }
+
+        canvas {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
         }
 
         button {
-            padding: 10px 20px;
+            padding: 10px;
             margin-top: 10px;
             background: #3b82f6;
             border: none;
             color: white;
             cursor: pointer;
         }
-
-        .result {
-            margin-top: 20px;
-            text-align: left;
-        }
-
-        .excellent { color: #22c55e; }
-        .good { color: #3b82f6; }
-        .risky { color: #facc15; }
-        .default { color: #ef4444; }
     </style>
 </head>
+
 <body>
 
-<div class="box">
-    <h2>📊 Credit Risk Predictor</h2>
+<h1>📊 Credit Risk Dashboard</h1>
 
-    <input type="file" id="fileInput" />
-    <br>
-    <button onclick="upload()">Analyze</button>
+<input type="file" id="fileInput">
+<button onclick="upload()">Analyze</button>
 
-    <div class="result" id="result"></div>
+<div class="grid">
+    <div class="card"><h3>Credit Score</h3><p id="score"></p></div>
+    <div class="card"><h3>Default Risk</h3><p id="default"></p></div>
+    <div class="card"><h3>Risk Category</h3><p id="state"></p></div>
+    <div class="card"><h3>Expected Default Time</h3><p id="time"></p></div>
+    <div class="card"><h3>Credit Limit</h3><p id="limit"></p></div>
 </div>
 
+<div class="grid">
+    <div class="card"><h3>Monthly Income</h3><p id="income"></p></div>
+    <div class="card"><h3>Savings Rate</h3><p id="savings"></p></div>
+</div>
+
+<canvas id="chart1"></canvas>
+<br>
+<canvas id="chart2"></canvas>
+
 <script>
+
 async function upload() {
+
     const file = document.getElementById("fileInput").files[0];
     const formData = new FormData();
     formData.append("file", file);
@@ -64,12 +83,47 @@ async function upload() {
 
     const data = await res.json();
 
-    document.getElementById("result").innerHTML = `
-        <h3>Current State: <span class="${data.current_state.toLowerCase()}">${data.current_state}</span></h3>
-        <h4>Prediction:</h4>
-        <pre>${JSON.stringify(data.prediction, null, 2)}</pre>
-    `;
+    // KPIs
+    document.getElementById("score").innerText = data.credit_score;
+    document.getElementById("default").innerText = (data.default_probability*100).toFixed(2) + "%";
+    document.getElementById("state").innerText = data.current_state;
+    document.getElementById("time").innerText = data.expected_months + " months";
+    document.getElementById("limit").innerText = "₹" + data.credit_limit.toFixed(0);
+
+    document.getElementById("income").innerText = "₹" + data.avg_income.toFixed(0);
+    document.getElementById("savings").innerText = (data.savings_rate*100).toFixed(1) + "%";
+
+    // charts
+    const months = data.features.map(f => f.month);
+    const income = data.features.map(f => f.income);
+    const expense = data.features.map(f => f.expense);
+    const savings = data.features.map(f => f.savings);
+
+    // income vs expense
+    new Chart(document.getElementById("chart1"), {
+        type: "bar",
+        data: {
+            labels: months,
+            datasets: [
+                { label: "Income", data: income },
+                { label: "Expense", data: expense }
+            ]
+        }
+    });
+
+    // savings trend
+    new Chart(document.getElementById("chart2"), {
+        type: "line",
+        data: {
+            labels: months,
+            datasets: [
+                { label: "Savings", data: savings }
+            ]
+        }
+    });
+
 }
+
 </script>
 
 </body>
