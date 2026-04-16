@@ -1,11 +1,11 @@
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from utils.parser import parse_pdf
-from utils.cleaner import clean_data
-from utils.features import create_features
-from models.state_model import assign_state
-from models.markov import build_transition_matrix, predict_next
+from backend.utils.parser import parse_pdf
+from backend.utils.cleaner import clean_data
+from backend.utils.features import create_features
+from backend.models.state_model import assign_state
+from backend.models.markov import build_transition_matrix, predict_next
 
 app = FastAPI()
 
