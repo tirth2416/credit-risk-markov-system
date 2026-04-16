@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Credit Risk System</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .box {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            background: #3b82f6;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        pre {
+            text-align: left;
+            background: black;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>📊 Credit Risk Predictor</h2>
+
+    <input type="file" id="fileInput" />
+    <br>
+    <button onclick="upload()">Analyze</button>
+
+    <pre id="result"></pre>
+</div>
+
+<script>
+async function upload() {
+    const file = document.getElementById("fileInput").files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("https://YOUR-RENDER-URL/analyze", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    document.getElementById("result").innerText =
+        "Current State: " + data.current_state + "\n\n" +
+        "Prediction:\n" + JSON.stringify(data.prediction, null, 2);
+}
+</script>
+
+</body>
+</html>
