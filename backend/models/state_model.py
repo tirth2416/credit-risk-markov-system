@@ -1,9 +1,11 @@
 def assign_state(row):
-    if row['savings_ratio'] > 0.4:
+    ratio = row['savings_ratio']
+
+    if ratio > 0.75:
         return "Excellent"
-    elif row['savings_ratio'] > 0.2:
+    elif ratio > 0.55:
         return "Good"
-    elif row['savings_ratio'] > 0:
+    elif ratio > 0.35:
         return "Risky"
     else:
         return "Default"
