@@ -2,14 +2,19 @@ import pandas as pd
 
 def build_transition_matrix(states):
     unique_states = list(set(states))
+    matrix = {s: {s2: 0 for s2 in unique_states} for s in unique_states}
 
-    matrix = pd.DataFrame(0, index=unique_states, columns=unique_states)
+    for i in range(len(states) - 1):
+        matrix[states[i]][states[i+1]] += 1
 
-    for i in range(len(states)-1):
-        matrix.loc[states[i], states[i+1]] += 1
+    # normalize
+    for s in matrix:
+        total = sum(matrix[s].values())
+        if total > 0:
+            for s2 in matrix[s]:
+                matrix[s][s2] /= total
 
-    matrix = matrix.div(matrix.sum(axis=1), axis=0).fillna(0)
     return matrix
 
 def predict_next(matrix, current_state):
-    return matrix.loc[current_state].to_dict()
+    return matrix.get(current_state, {})
