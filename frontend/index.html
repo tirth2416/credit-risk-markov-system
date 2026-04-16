@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Credit Risk System</title>
+    <title>Credit Risk Predictor</title>
     <style>
         body {
             font-family: Arial;
@@ -16,6 +16,7 @@
             padding: 30px;
             border-radius: 10px;
             display: inline-block;
+            width: 400px;
         }
 
         button {
@@ -27,12 +28,15 @@
             cursor: pointer;
         }
 
-        pre {
-            text-align: left;
-            background: black;
-            padding: 10px;
+        .result {
             margin-top: 20px;
+            text-align: left;
         }
+
+        .excellent { color: #22c55e; }
+        .good { color: #3b82f6; }
+        .risky { color: #facc15; }
+        .default { color: #ef4444; }
     </style>
 </head>
 <body>
@@ -44,7 +48,7 @@
     <br>
     <button onclick="upload()">Analyze</button>
 
-    <pre id="result"></pre>
+    <div class="result" id="result"></div>
 </div>
 
 <script>
@@ -53,16 +57,18 @@ async function upload() {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch("https://YOUR-RENDER-URL/analyze", {
+    const res = await fetch("https://credit-risk-backend-7e5e.onrender.com/analyze", {
         method: "POST",
         body: formData
     });
 
     const data = await res.json();
 
-    document.getElementById("result").innerText =
-        "Current State: " + data.current_state + "\n\n" +
-        "Prediction:\n" + JSON.stringify(data.prediction, null, 2);
+    document.getElementById("result").innerHTML = `
+        <h3>Current State: <span class="${data.current_state.toLowerCase()}">${data.current_state}</span></h3>
+        <h4>Prediction:</h4>
+        <pre>${JSON.stringify(data.prediction, null, 2)}</pre>
+    `;
 }
 </script>
 
