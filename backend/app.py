@@ -50,7 +50,7 @@ async def analyze(file: UploadFile):
     savings_rate = (avg_income - avg_expense) / (avg_income + 1)
 
     credit_limit = avg_income * 0.3
-    default_prob = prediction.get("Default", 0)
+    default_prob = prediction.get("Default", 0.05)
 
     # credit score logic
     score = 800
