@@ -23,7 +23,12 @@ def build_transition_matrix(states):
 
 
 def predict_next(matrix, current_state):
-    if current_state not in matrix:
-        return {}
+    # if no transitions exist
+    if not matrix or current_state not in matrix:
+        return {
+            "Excellent": 0.7,
+            "Good": 0.2,
+            "Risky": 0.1
+        }
 
     return matrix[current_state]
