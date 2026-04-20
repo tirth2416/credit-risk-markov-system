@@ -1,6 +1,8 @@
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
+from pathlib import Path
 
 from backend.utils.parser import parse_pdf
 from backend.utils.cleaner import clean_data
@@ -18,9 +20,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+# Mount frontend static files
+frontend_path = Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
+
+@app.get("/api/")
 def home():
-    return {"message": "Backend running"}
+    return {"message": "Backend API running"}
 
 @app.post("/analyze")
 async def analyze(file: UploadFile):

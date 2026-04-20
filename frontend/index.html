@@ -761,7 +761,7 @@ async function analyze() {
     form.append("file", file);
 
     try {
-        const res = await fetch("http://localhost:8000/analyze", {
+        const res = await fetch("/analyze", {
             method: "POST",
             body: form
         });
