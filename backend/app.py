@@ -20,11 +20,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount frontend static files
-frontend_path = Path(__file__).parent.parent / "frontend"
-if frontend_path.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
-
 @app.get("/api/")
 def home():
     return {"message": "Backend API running"}
@@ -109,3 +104,9 @@ async def analyze(file: UploadFile):
     finally:
         if os.path.exists(path):
             os.remove(path)
+
+
+# Mount frontend static files AFTER all routes
+frontend_path = Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
