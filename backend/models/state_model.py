@@ -1,22 +1,21 @@
 def assign_state(row):
+    """Classify financial health state based on savings ratio.
+    
+    Markov States (based on savings_ratio = (income - expense) / income):
+    - Excellent: ratio > 0.70 (saving >70% of income, very healthy)
+    - Good:      0.40 < ratio <= 0.70 (stable financial position)
+    - Risky:     0.10 < ratio <= 0.40 (vulnerable, high risk)
+    - Default:   ratio <= 0.10 (critical, likely to default)
+    
+    These states define the Markov chain's state space.
     """
-    Assign financial state based on savings behavior
-    """
+    ratio = row["savings_ratio"]
 
-    savings_ratio = row.get("savings_ratio", 0)
-    income = row.get("income", 0)
-    expense = row.get("expense", 0)
-
-    # Extra safety
-    if income == 0:
-        return "Risky"
-
-    # Core logic (tuned for better variation)
-    if savings_ratio >= 0.75:
+    if ratio > 0.70:
         return "Excellent"
-    elif savings_ratio >= 0.55:
+    elif ratio > 0.40:
         return "Good"
-    elif savings_ratio >= 0.35:
+    elif ratio > 0.10:
         return "Risky"
     else:
         return "Default"

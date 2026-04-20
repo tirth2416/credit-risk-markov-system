@@ -1,129 +1,993 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Credit Risk Dashboard</title>
+    <meta charset="UTF-8">
+    <title>Credit Risk Markov Chain Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: Arial;
-            background: #0f172a;
-            color: white;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a202c 100%);
+            color: #e2e8f0;
             padding: 20px;
+            min-height: 100vh;
         }
 
-        h1 { text-align: center; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .card {
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            border-bottom: 2px solid #334155;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .description {
+            font-size: 0.95em;
+            color: #cbd5e1;
+            max-width: 600px;
+            margin: 15px auto;
+            line-height: 1.6;
+        }
+
+        .upload-section {
             background: #1e293b;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
 
-        canvas {
-            background: white;
-            border-radius: 10px;
-            padding: 10px;
+        .upload-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 1.05em;
+            color: #e2e8f0;
         }
 
-        button {
+        .file-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="file"] {
             padding: 10px;
-            margin-top: 10px;
-            background: #3b82f6;
-            border: none;
-            color: white;
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            color: #e2e8f0;
             cursor: pointer;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        input[type="file"]::file-selector-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #2563eb;
+        }
+
+        .analyze-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(0);
+        }
+
+        .error-box {
+            background: #7f1d1d;
+            border: 1px solid #dc2626;
+            color: #fca5a5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #10b981;
+            font-weight: 600;
+            display: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #334155;
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #results {
+            display: none;
+        }
+
+        .results-header {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+
+        .results-header h2 {
+            color: #e2e8f0;
+            margin-bottom: 10px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: #475569;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: 700;
+            margin-top: 10px;
+            word-break: break-word;
+        }
+
+        .state-excellent { color: #10b981; }
+        .state-good { color: #3b82f6; }
+        .state-risky { color: #f59e0b; }
+        .state-default { color: #ef4444; }
+
+        .chart-section {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+        }
+
+        .chart-section h3 {
+            color: #e2e8f0;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 15px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 0 auto;
+        }
+
+        .matrix-table {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        table th {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #334155;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+
+        table tr:nth-child(even) {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        table tr:hover {
+            background: rgba(51, 65, 85, 0.5);
+        }
+
+        .table-row-header {
+            background: #0f172a;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .heatmap-cell {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .heatmap-0 { background: rgba(30, 30, 30, 0.8); color: #64748b; }
+        .heatmap-25 { background: rgba(59, 130, 246, 0.6); color: white; }
+        .heatmap-50 { background: rgba(34, 197, 94, 0.6); color: white; }
+        .heatmap-75 { background: rgba(245, 158, 11, 0.6); color: white; }
+        .heatmap-100 { background: rgba(239, 68, 68, 0.8); color: white; }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            color: #bfdbfe;
+            line-height: 1.6;
+            font-size: 0.9em;
+        }
+
+        .learn-section {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border: 1px solid #334155;
+        }
+
+        .learn-section h2 {
+            color: #e2e8f0;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 15px;
+        }
+
+        .learn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .learn-card {
+            background: #0f172a;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #10b981;
+            transition: all 0.3s ease;
+        }
+
+        .learn-card:hover {
+            border-left-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .learn-card h3 {
+            color: #10b981;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .learn-card p {
+            color: #cbd5e1;
+            line-height: 1.7;
+            font-size: 0.95em;
+        }
+
+        .formula-box {
+            background: rgba(15, 23, 42, 0.8);
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            color: #fbbf24;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+
+        .learn-step {
+            background: rgba(16, 185, 129, 0.05);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 3px solid #10b981;
+            color: #cbd5e1;
+        }
+
+        .state-box {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 5px 5px 5px 0;
+            font-size: 0.85em;
+        }
+
+        .state-excellent-box { background: rgba(16, 185, 129, 0.3); color: #10b981; }
+        .state-good-box { background: rgba(59, 130, 246, 0.3); color: #3b82f6; }
+        .state-risky-box { background: rgba(245, 158, 11, 0.3); color: #f59e0b; }
+        .state-default-box { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+
+        footer {
+            margin-top: 60px;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #334155;
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            .file-input-wrapper {
+                flex-direction: column;
+            }
+
+            input[type="file"] {
+                min-width: 100%;
+            }
         }
     </style>
 </head>
 
 <body>
 
-<h1>📊 Credit Risk Dashboard</h1>
+<div class="container">
+    <header>
+        <h1>Credit Risk Markov Chain Analyzer</h1>
+        <p class="subtitle">Stochastic Process Analysis for Credit Default Risk</p>
+        <p class="description">
+            This application analyzes financial data using Markov chain modeling 
+            to assess credit risk and predict state transitions based on savings patterns.
+        </p>
+    </header>
 
-<input type="file" id="fileInput">
-<button onclick="upload()">Analyze</button>
+    <div class="upload-section">
+        <label class="upload-label">Upload PDF Bank Statement</label>
+        <div class="file-input-wrapper">
+            <input type="file" id="file" accept=".pdf">
+            <button class="analyze-btn" onclick="analyze()">ANALYZE</button>
+        </div>
+        <div class="info-box">
+            Your PDF must contain a table with: Date, Debit/Credit, Balance columns
+        </div>
+        <div class="error-box" id="error"></div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Processing PDF and building Markov model...
+        </div>
+    </div>
 
-<div class="grid">
-    <div class="card"><h3>Credit Score</h3><p id="score"></p></div>
-    <div class="card"><h3>Default Risk</h3><p id="default"></p></div>
-    <div class="card"><h3>Risk Category</h3><p id="state"></p></div>
-    <div class="card"><h3>Expected Default Time</h3><p id="time"></p></div>
-    <div class="card"><h3>Credit Limit</h3><p id="limit"></p></div>
+    <div id="results">
+        <div class="results-header">
+            <h2>Markov Chain Analysis Complete</h2>
+            <p id="results-subtitle"></p>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Current Financial State</div>
+                <div class="metric-value" id="state"></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Credit Score</div>
+                <div class="metric-value" id="score"></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Default Probability (Next Period)</div>
+                <div class="metric-value" id="default_prob"></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Approved Credit Limit</div>
+                <div class="metric-value" style="color: #10b981;">₹<span id="credit_limit"></span></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Average Monthly Income</div>
+                <div class="metric-value" style="color: #10b981;">₹<span id="avg_income"></span></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Average Savings Rate</div>
+                <div class="metric-value" id="savings_rate"></div>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h3>Markov Transition Matrix</h3>
+            <p style="color: #94a3b8; margin-bottom: 15px; font-size: 0.9em;">
+                P(X_{t+1} = j | X_t = i) - One-step transition probabilities. Rows sum to 1.0
+            </p>
+            <div class="matrix-table">
+                <table id="matrix-table"></table>
+            </div>
+            <div class="info-box">
+                The transition matrix shows P(next_state = j | current_state = i).
+                Each row represents the current state, each column represents the next state.
+                Cell values are probabilities that sum to 1.0 across each row.
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h3>One-Step Ahead State Prediction</h3>
+            <p style="color: #94a3b8; margin-bottom: 15px; font-size: 0.9em;">
+                Probability distribution over next-period states
+            </p>
+            <div class="chart-container">
+                <canvas id="transitionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h3>Monthly Cash Flow Analysis</h3>
+            <p style="color: #94a3b8; margin-bottom: 15px; font-size: 0.9em;">
+                Historical monthly income vs. expenses
+            </p>
+            <div class="chart-container">
+                <canvas id="statementChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h3>Financial State Sequence Over Time</h3>
+            <p style="color: #94a3b8; margin-bottom: 15px; font-size: 0.9em;">
+                Observed state trajectory showing transitions through the analysis period
+            </p>
+            <div class="chart-container">
+                <canvas id="stateSequenceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="learn-section" id="learn-section">
+        <h2>How This System Works</h2>
+        
+        <div class="learn-grid">
+            <div class="learn-card">
+                <h3>What is a Markov Chain?</h3>
+                <p>
+                    Think of it like predicting the weather. Today's weather depends only on yesterday's weather, 
+                    not on the entire weather history. That's a Markov chain! In our system, your financial 
+                    health tomorrow depends mainly on your financial state today. We use this to predict 
+                    whether you'll move to a better or worse financial state next month.
+                </p>
+                <div class="formula-box">
+                    P(next state = j | current state = i) = Transition Probability<br/>
+                    "What's the chance I move to state j from state i next month?"
+                </div>
+            </div>
+
+            <div class="learn-card">
+                <h3>Financial States: Where Are You?</h3>
+                <div class="learn-step">
+                    <span class="state-box state-excellent-box">EXCELLENT</span> Savings Ratio over 70%<br/>
+                    You're crushing it! Saving more than 70% of what you earn. Super healthy finances.
+                </div>
+                <div class="learn-step">
+                    <span class="state-box state-good-box">GOOD</span> Savings Ratio 40 to 70%<br/>
+                    Nice! You're balancing income and expenses well. This is comfortable territory.
+                </div>
+                <div class="learn-step">
+                    <span class="state-box state-risky-box">RISKY</span> Savings Ratio 10 to 40%<br/>
+                    You're spending more than you'd like. Getting tighter, needs some attention.
+                </div>
+                <div class="learn-step">
+                    <span class="state-box state-default-box">DEFAULT</span> Savings Ratio 10% or less<br/>
+                    Ouch! You're spending almost everything you earn. This is the danger zone.
+                </div>
+            </div>
+
+            <div class="learn-card">
+                <h3>How We Calculate Your Savings</h3>
+                <p>
+                    The savings ratio is simple: how much of your monthly paycheck do you actually keep? 
+                    This one number tells us everything about your financial health.
+                </p>
+                <div class="formula-box">
+                    Savings Ratio = (Your Income - What You Spent) / Your Income<br/><br/>
+                    Real Example:<br/>
+                    You earn = ₹50,000/month<br/>
+                    You spend = ₹20,000/month<br/>
+                    You save = (50,000 - 20,000) / 50,000 = 0.60 = 60%<br/>
+                    Result: You're in GOOD state
+                </div>
+                <p style="margin-top: 15px;">
+                    This ratio is calculated for every single month in your bank statement. 
+                    It's like a monthly health check for your wallet!
+                </p>
+            </div>
+
+            <div class="learn-card">
+                <h3>The Transition Matrix: Predicting Your Future</h3>
+                <p>
+                    The transition matrix is like a probability roadmap. If you're in a GOOD state right now, 
+                    what are the odds you'll stay there next month, improve, or slip into RISKY territory? 
+                    This matrix has all those odds.
+                </p>
+                <div class="formula-box">
+                    If you're currently in GOOD state this month:<br/>
+                    10% chance you jump to EXCELLENT<br/>
+                    80% chance you stay in GOOD<br/>
+                    8% chance you slip to RISKY<br/>
+                    2% chance you go all the way to DEFAULT
+                </div>
+                <p style="margin-top: 15px;">
+                    This comes from analyzing your actual transaction history. We see all the state changes 
+                    you've had and build probabilities based on real patterns. All rows always add up to 100%.
+                </p>
+            </div>
+                </p>
+            </div>
+
+            <div class="learn-card">
+                <h3>Your Credit Score: How We Calculate It</h3>
+                <p>
+                    Your credit score is based on your financial state right now, but we adjust it down 
+                    if we think there's a risk you might default next month. Think of it as a reality check.
+                </p>
+                <div class="formula-box">
+                    Credit Score = Base Score - (Default Risk x 300)<br/><br/>
+                    Base Scores at each state:<br/>
+                    EXCELLENT state = 800 points<br/>
+                    GOOD state = 700 points<br/>
+                    RISKY state = 550 points<br/>
+                    DEFAULT state = 300 points<br/><br/>
+                    Example Calculation:<br/>
+                    You're in GOOD state (base 700)<br/>
+                    Chance of default = 5% (0.05)<br/>
+                    Score = 700 - (0.05 x 300) = 685
+                </div>
+            </div>
+
+            <div class="learn-card">
+                <h3>Your Credit Limit: How Much Credit Can You Get?</h3>
+                <p>
+                    We let you borrow based on your income and risk level. The more likely you are to default, 
+                    the less we'll lend you. It's a simple risk management strategy.
+                </p>
+                <div class="formula-box">
+                    Credit Limit = (Your Income x 0.3) x (1 - Default Risk)<br/><br/>
+                    Real Example:<br/>
+                    Average monthly income = ₹50,000<br/>
+                    Default probability = 5% (0.05)<br/>
+                    <br/>
+                    Calculation:<br/>
+                    50,000 x 0.3 = ₹15,000<br/>
+                    1 - 0.05 = 0.95<br/>
+                    ₹15,000 x 0.95 = ₹14,250 approved limit
+                </div>
+                <p style="margin-top: 15px;">
+                    The higher your risk of default, the lower your approved limit gets. It's fair and logical.
+                </p>
+            </div>
+
+            <div class="learn-card">
+                <h3>Behind the Scenes: How We Process Your Data</h3>
+                <p>
+                    Here's the step-by-step journey your PDF takes through our system. 
+                    All of this happens in seconds!
+                </p>
+                <div class="learn-step">Step 1: We extract all transactions from your PDF</div>
+                <div class="learn-step">Step 2: We parse the date, money in (income), and money out (expenses)</div>
+                <div class="learn-step">Step 3: We group everything by month</div>
+                <div class="learn-step">Step 4: For each month, we calculate your savings ratio</div>
+                <div class="learn-step">Step 5: We assign you a financial state based on that ratio</div>
+                <div class="learn-step">Step 6: We build a transition matrix from all your state changes</div>
+                <div class="learn-step">Step 7: We predict what state you'll likely be in next month</div>
+                <div class="learn-step">Step 8: We calculate your credit score and approved limit</div>
+            </div>
+
+            <div class="learn-card">
+                <h3>Understanding Your Charts</h3>
+                <p>
+                    After we analyze your PDF, we show you four different views of your financial data. 
+                    Each one tells a different story.
+                </p>
+                <div class="learn-step">
+                    <strong>Transition Matrix (Heatmap)</strong> Shows the probability roadmap between all states
+                </div>
+                <div class="learn-step">
+                    <strong>State Prediction (Bar Chart)</strong> What are the odds you'll be in each state next month
+                </div>
+                <div class="learn-step">
+                    <strong>Monthly Cash Flow (Line Chart)</strong> Your income and expenses month by month
+                </div>
+                <div class="learn-step">
+                    <strong>State Timeline (Scatter Plot)</strong> Which financial state you were in during each month
+                </div>
+            </div>
+
+            <div class="learn-card">
+                <h3>What We Need From You (The Fine Print)</h3>
+                <p>
+                    For this system to work properly, we need certain things from your PDF. 
+                    The more data you give us, the better our predictions.
+                </p>
+                <div class="formula-box">
+                    Minimum data: 2 or more months of history<br/>
+                    File format: PDF with a transaction table<br/>
+                    Required columns in the table:<br/>
+                    • Date of transaction<br/>
+                    • Debit or Debit(N) column (money you spent)<br/>
+                    • Credit or Credit(N) column (money you earned)
+                </div>
+                <p style="margin-top: 15px;">
+                    With just 2 months, our predictions are okay. With 12 months, they're much better. 
+                    It's like building a weather forecast with more past data.
+                </p>
+            </div>
+        </div>
+
+        <div class="info-box" style="margin-top: 30px; border-left: 4px solid #10b981;">
+            <strong>Academic Note:</strong> This system implements a time-homogeneous, discrete-time, 
+            finite-state Markov chain for modeling credit default risk. It's suitable for educational 
+            projects in stochastic processes, financial mathematics, and risk assessment.
+        </div>
+    </div>
 </div>
 
-<div class="grid">
-    <div class="card"><h3>Monthly Income</h3><p id="income"></p></div>
-    <div class="card"><h3>Savings Rate</h3><p id="savings"></p></div>
-</div>
+<footer>
+    <p>Credit Risk Analysis Dashboard | Markov Chain Stochastic Process Modeling</p>
+    <p style="margin-top: 10px; font-size: 0.85em;">
+        Methodology: Time-Homogeneous Markov Chain | Financial State Classification via Savings Ratio
+    </p>
+</footer>
 
-<canvas id="chart1"></canvas>
-<br>
-<canvas id="chart2"></canvas>
+</div>
 
 <script>
+let transitionChart, statementChart, stateSequenceChart;
 
-async function upload() {
+const stateColors = { "Excellent": "#10b981", "Good": "#3b82f6", "Risky": "#f59e0b", "Default": "#ef4444" };
 
-    const file = document.getElementById("fileInput").files[0];
-    const formData = new FormData();
-    formData.append("file", file);
+async function analyze() {
+    const file = document.getElementById("file").files[0];
+    const errorDiv = document.getElementById("error");
+    const loadingDiv = document.getElementById("loading");
+    const resultsDiv = document.getElementById("results");
 
-    const res = await fetch("https://credit-risk-backend-7e5e.onrender.com/analyze", {
-        method: "POST",
-        body: formData
-    });
+    errorDiv.style.display = "none";
+    resultsDiv.style.display = "none";
+    loadingDiv.style.display = "block";
 
-    const data = await res.json();
+    if (!file) {
+        errorDiv.innerText = "ERROR: Please select a PDF file";
+        errorDiv.style.display = "block";
+        loadingDiv.style.display = "none";
+        return;
+    }
 
-    // KPIs
-    document.getElementById("score").innerText = data.credit_score;
-    document.getElementById("default").innerText = (data.default_probability*100).toFixed(2) + "%";
-    document.getElementById("state").innerText = data.current_state;
-    document.getElementById("time").innerText = data.expected_months + " months";
-    document.getElementById("limit").innerText = "₹" + data.credit_limit.toFixed(0);
+    if (!file.name.endsWith(".pdf")) {
+        errorDiv.innerText = "ERROR: File must be a PDF";
+        errorDiv.style.display = "block";
+        loadingDiv.style.display = "none";
+        return;
+    }
 
-    document.getElementById("income").innerText = "₹" + data.avg_income.toFixed(0);
-    document.getElementById("savings").innerText = (data.savings_rate*100).toFixed(1) + "%";
+    const form = new FormData();
+    form.append("file", file);
 
-    // charts
-    const months = data.features.map(f => f.month);
-    const income = data.features.map(f => f.income);
-    const expense = data.features.map(f => f.expense);
-    const savings = data.features.map(f => f.savings);
+    try {
+        const res = await fetch("http://localhost:8000/analyze", {
+            method: "POST",
+            body: form
+        });
 
-    // income vs expense
-    new Chart(document.getElementById("chart1"), {
-        type: "bar",
-        data: {
-            labels: months,
-            datasets: [
-                { label: "Income", data: income },
-                { label: "Expense", data: expense }
-            ]
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.detail || "Analysis failed");
         }
-    });
 
-    // savings trend
-    new Chart(document.getElementById("chart2"), {
-        type: "line",
-        data: {
-            labels: months,
-            datasets: [
-                { label: "Savings", data: savings }
-            ]
-        }
-    });
-
+        const data = await res.json();
+        displayResults(data);
+        resultsDiv.style.display = "block";
+    } catch (err) {
+        errorDiv.innerText = "ERROR: " + err.message;
+        errorDiv.style.display = "block";
+    } finally {
+        loadingDiv.style.display = "none";
+    }
 }
 
+function displayResults(data) {
+    const color = stateColors[data.current_state] || "#64748b";
+
+    document.getElementById("state").innerText = data.current_state;
+    document.getElementById("state").style.color = color;
+    document.getElementById("score").innerText = data.credit_score;
+    document.getElementById("default_prob").innerText = (data.default_probability * 100).toFixed(2) + "%";
+    document.getElementById("credit_limit").innerText = data.credit_limit.toFixed(2);
+    document.getElementById("avg_income").innerText = data.avg_income.toFixed(2);
+    document.getElementById("savings_rate").innerText = (data.savings_rate * 100).toFixed(2) + "%";
+
+    if (data.transition_matrix && data.state_labels) {
+        drawTransitionMatrix(data.transition_matrix, data.state_labels);
+    }
+    drawTransition(data.prediction);
+    drawStatement(data.features);
+    if (data.features && data.state_labels) {
+        drawStateSequence(data.features, data.state_labels);
+    }
+}
+
+function drawTransitionMatrix(matrix, labels) {
+    const tableEl = document.getElementById("matrix-table");
+    if (!tableEl) return;
+    
+    tableEl.innerHTML = "";
+    const headerRow = document.createElement("tr");
+    const cornerCell = document.createElement("th");
+    cornerCell.innerText = "From/To";
+    headerRow.appendChild(cornerCell);
+
+    labels.forEach(label => {
+        const th = document.createElement("th");
+        th.innerText = label;
+        th.style.color = stateColors[label] || "#e2e8f0";
+        headerRow.appendChild(th);
+    });
+    tableEl.appendChild(headerRow);
+
+    matrix.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        const labelCell = document.createElement("td");
+        labelCell.className = "table-row-header";
+        labelCell.innerText = labels[i];
+        labelCell.style.color = stateColors[labels[i]] || "#10b981";
+        tr.appendChild(labelCell);
+
+        row.forEach(prob => {
+            const td = document.createElement("td");
+            td.innerText = prob.toFixed(3);
+
+            if (prob === 0) {
+                td.classList.add("heatmap-0");
+            } else if (prob < 0.33) {
+                td.classList.add("heatmap-25");
+            } else if (prob < 0.66) {
+                td.classList.add("heatmap-50");
+            } else if (prob < 0.99) {
+                td.classList.add("heatmap-75");
+            } else {
+                td.classList.add("heatmap-100");
+            }
+            tr.appendChild(td);
+        });
+        tableEl.appendChild(tr);
+    });
+}
+
+function drawTransition(pred) {
+    if (transitionChart) transitionChart.destroy();
+    const states = Object.keys(pred).sort();
+    const colors = states.map(s => stateColors[s] || "#64748b");
+    const ctx = document.getElementById("transitionChart");
+    if (!ctx) return;
+    
+    transitionChart = new Chart(ctx.getContext("2d"), {
+        type: "bar",
+        data: {
+            labels: states,
+            datasets: [{ 
+                label: "Probability (%)", 
+                data: Object.values(pred).map(p => (p*100).toFixed(1)), 
+                backgroundColor: colors 
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { 
+                y: { 
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { color: "#94a3b8" },
+                    grid: { color: "#334155" }
+                },
+                x: {
+                    ticks: { color: "#94a3b8" },
+                    grid: { color: "#334155" }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: "#e2e8f0" } }
+            }
+        }
+    });
+}
+
+function drawStatement(features) {
+    if (statementChart) statementChart.destroy();
+    const ctx = document.getElementById("statementChart");
+    if (!ctx) return;
+    
+    statementChart = new Chart(ctx.getContext("2d"), {
+        type: "line",
+        data: {
+            labels: features.map(f => f.month),
+            datasets: [
+                { 
+                    label: "Income", 
+                    data: features.map(f => f.income), 
+                    borderColor: "#10b981", 
+                    backgroundColor: "rgba(16,185,129,0.1)", 
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                },
+                { 
+                    label: "Expense", 
+                    data: features.map(f => f.expense), 
+                    borderColor: "#ef4444", 
+                    backgroundColor: "rgba(239,68,68,0.1)", 
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: { 
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    ticks: { color: "#94a3b8" },
+                    grid: { color: "#334155" }
+                },
+                x: {
+                    ticks: { color: "#94a3b8" },
+                    grid: { color: "#334155" }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: "#e2e8f0" } }
+            }
+        }
+    });
+}
+
+function drawStateSequence(features, labels) {
+    if (stateSequenceChart) stateSequenceChart.destroy();
+    const ctx = document.getElementById("stateSequenceChart");
+    if (!ctx) return;
+
+    const stateMap = {};
+    labels.forEach((label, i) => {
+        stateMap[label] = i;
+    });
+
+    stateSequenceChart = new Chart(ctx.getContext("2d"), {
+        type: "scatter",
+        data: {
+            datasets: labels.map((label, idx) => ({
+                label: label,
+                data: features
+                    .map((f, i) => f.state === label ? { x: i, y: idx } : null)
+                    .filter(d => d !== null),
+                backgroundColor: stateColors[label] || "#64748b",
+                borderColor: stateColors[label] || "#64748b",
+                radius: 6
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    min: -0.5,
+                    max: labels.length - 0.5,
+                    ticks: {
+                        callback: function(value) {
+                            return labels[value] || "";
+                        },
+                        color: "#94a3b8"
+                    },
+                    grid: { color: "#334155" }
+                },
+                x: {
+                    ticks: { color: "#94a3b8" },
+                    grid: { color: "#334155" }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: "#e2e8f0" } }
+            }
+        }
+    });
+}
 </script>
 
 </body>
